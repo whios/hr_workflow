@@ -1,0 +1,10 @@
+packages:
+  - .
+
+allowBuilds:
+  core-js: true
+  sharp: true
+
+overrides:
+  caniuse-lite: 1.0.30001807
+  update-browserslist-db: 1.2.3

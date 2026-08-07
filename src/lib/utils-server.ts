@@ -1,7 +1,5 @@
 import crypto from 'crypto';
-import { S3Storage } from 'coze-coding-dev-sdk';
-
-const storage = new S3Storage();
+import { del, get, put } from '@vercel/blob';
 
 // --- Token & ID generation ---
 
@@ -15,7 +13,7 @@ export function generateReceiptId(): string {
     date.getFullYear().toString().slice(-2) +
     String(date.getMonth() + 1).padStart(2, '0') +
     String(date.getDate()).padStart(2, '0');
-  const random = crypto.randomBytes(3).toString('hex').toUpperCase();
+  const random = crypto.randomBytes(8).toString('hex').toUpperCase();
   return `BG${dateStr}-${random}`;
 }
 
@@ -41,25 +39,36 @@ export function maskPhone(phone: string): string {
   return phone.slice(0, 3) + '******' + phone.slice(-2);
 }
 
-// --- Signature file storage (S3) ---
+// --- Signature file storage ---
 
 export async function saveSignatureToStorage(
   receiptId: string,
   buffer: Buffer
 ): Promise<string> {
-  const fileName = `${receiptId}.png`;
-  const actualKey = await storage.uploadFile({
-    fileContent: buffer,
-    fileName,
+  const pathname = `signatures/${receiptId}.png`;
+  const blob = await put(pathname, buffer, {
+    access: 'private',
+    allowOverwrite: false,
     contentType: 'image/png',
+    cacheControlMaxAge: 60,
   });
-  return actualKey;
+  return blob.pathname;
 }
 
-export async function getSignatureUrl(fileKey: string): Promise<string> {
-  return storage.generatePresignedUrl({ key: fileKey, expireTime: 3600 });
+export async function removeSignatureFromStorage(fileKey: string): Promise<void> {
+  await del(fileKey);
 }
 
 export async function readSignatureBuffer(fileKey: string): Promise<Buffer> {
-  return storage.readFile({ fileKey });
+  const result = await get(fileKey, {
+    access: 'private',
+    useCache: false,
+  });
+
+  if (!result || result.statusCode !== 200) {
+    throw new Error('Signature not found');
+  }
+
+  const arrayBuffer = await new Response(result.stream).arrayBuffer();
+  return Buffer.from(arrayBuffer);
 }

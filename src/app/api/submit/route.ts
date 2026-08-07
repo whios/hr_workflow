@@ -6,6 +6,7 @@ import {
   maskIdNumber,
   maskPhone,
   saveSignatureToStorage,
+  removeSignatureFromStorage,
 } from '@/lib/utils-server';
 import { insertAuthorization } from '@/lib/db';
 import { buildAuthorizationText } from '@/lib/auth-text';
@@ -56,27 +57,32 @@ export async function POST(request: NextRequest) {
     const idNumberMasked = maskIdNumber(idNumber);
     const phoneMasked = maskPhone(phone);
 
-    // Save signature to object storage
+    // Save the signature first, then remove it again if the receipt write fails.
     const signatureBuffer = Buffer.from(await signatureFile.arrayBuffer());
     const signatureKey = await saveSignatureToStorage(receiptId, signatureBuffer);
 
     // Authorization text (full declarations)
     const authorizationText = buildAuthorizationText(
+      companyName,
       candidateName,
-      idNumberMasked,
-      companyName
+      idNumberMasked
     );
 
     // Save to database
-    await insertAuthorization({
-      receipt_id: receiptId,
-      company_name: companyName,
-      candidate_name: candidateName,
-      id_number_masked: idNumberMasked,
-      phone_masked: phoneMasked,
-      signature_key: signatureKey,
-      authorization_text: authorizationText,
-    });
+    try {
+      await insertAuthorization({
+        receipt_id: receiptId,
+        company_name: companyName,
+        candidate_name: candidateName,
+        id_number_masked: idNumberMasked,
+        phone_masked: phoneMasked,
+        signature_key: signatureKey,
+        authorization_text: authorizationText,
+      });
+    } catch (error) {
+      await removeSignatureFromStorage(signatureKey).catch(() => undefined);
+      throw error;
+    }
 
     return NextResponse.json({ receiptId }, { status: 201 });
   } catch (error) {

@@ -1,4 +1,4 @@
-import { getSupabaseClient } from '@/storage/database/supabase-client';
+import { get, put } from '@vercel/blob';
 
 export interface AuthorizationRecord {
   id: number;
@@ -21,33 +21,36 @@ export async function insertAuthorization(data: {
   signature_key: string;
   authorization_text: string;
 }): Promise<AuthorizationRecord> {
-  const client = getSupabaseClient();
-  const { data: result, error } = await client
-    .from('authorizations')
-    .insert({
-      receipt_id: data.receipt_id,
-      company_name: data.company_name,
-      candidate_name: data.candidate_name,
-      id_number_masked: data.id_number_masked,
-      phone_masked: data.phone_masked,
-      signature_key: data.signature_key,
-      authorization_text: data.authorization_text,
-    })
-    .select()
-    .single();
-  if (error) throw new Error(`插入授权记录失败: ${error.message}`);
-  return result as AuthorizationRecord;
+  const record: AuthorizationRecord = {
+    id: 0,
+    ...data,
+    created_at: new Date().toISOString(),
+  };
+
+  await put(
+    `receipts/${data.receipt_id}.json`,
+    JSON.stringify(record),
+    {
+      access: 'private',
+      allowOverwrite: false,
+      contentType: 'application/json; charset=utf-8',
+      cacheControlMaxAge: 60,
+    },
+  );
+
+  return record;
 }
 
 export async function findAuthorizationByReceiptId(
   receiptId: string
 ): Promise<AuthorizationRecord | null> {
-  const client = getSupabaseClient();
-  const { data, error } = await client
-    .from('authorizations')
-    .select('*')
-    .eq('receipt_id', receiptId)
-    .maybeSingle();
-  if (error) throw new Error(`查询授权记录失败: ${error.message}`);
-  return (data as AuthorizationRecord) ?? null;
+  const result = await get(`receipts/${receiptId}.json`, {
+    access: 'private',
+    useCache: false,
+  });
+
+  if (!result || result.statusCode !== 200) return null;
+
+  const json = await new Response(result.stream).text();
+  return JSON.parse(json) as AuthorizationRecord;
 }

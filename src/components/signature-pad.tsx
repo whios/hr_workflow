@@ -3,12 +3,10 @@
 import {
   useRef,
   useEffect,
-  useCallback,
   useState,
   forwardRef,
   useImperativeHandle,
 } from 'react';
-import SignaturePad from 'signature_pad';
 
 export interface SignaturePadHandle {
   getDataUrl: () => string | null;
@@ -21,24 +19,21 @@ interface SignaturePadProps {
   onDraw?: () => void;
 }
 
-/**
- * Production-grade signature pad using signature_pad library.
- *
- * Features:
- * - Bezier curve smoothing for natural-looking strokes
- * - Velocity-based stroke width (thin when fast, thick when slow)
- * - High-DPI canvas rendering
- * - ResizeObserver for responsive sizing
- * - Touch/mouse/pointer event compatibility
- * - getCoalescedEvents support for high-frequency input
- */
+interface Point {
+  x: number;
+  y: number;
+}
+
 const SignaturePadComponent = forwardRef<SignaturePadHandle, SignaturePadProps>(
   function SignaturePadComponent({ onDraw }, ref) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
-    const padRef = useRef<SignaturePad | null>(null);
+    const strokesRef = useRef<Point[][]>([]);
+    const activeStrokeRef = useRef<Point[] | null>(null);
+    const activePointerRef = useRef<number | null>(null);
+    const sizeRef = useRef({ width: 0, height: 0 });
     const [isEmptyState, setIsEmptyState] = useState(true);
-    const [isFocused, setIsFocused] = useState(false);
+    const [isDrawing, setIsDrawing] = useState(false);
     const onDrawRef = useRef(onDraw);
 
     // Keep callback ref fresh
@@ -46,103 +41,254 @@ const SignaturePadComponent = forwardRef<SignaturePadHandle, SignaturePadProps>(
       onDrawRef.current = onDraw;
     }, [onDraw]);
 
-    // Initialize signature_pad
     useEffect(() => {
       const canvas = canvasRef.current;
       const container = containerRef.current;
       if (!canvas || !container) return;
 
-      // Set up canvas size with DPR
+      const context = () => canvas.getContext('2d');
+
+      const configureContext = (ctx: CanvasRenderingContext2D) => {
+        ctx.lineWidth = 2.4;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.strokeStyle = '#1f2329';
+        ctx.fillStyle = '#1f2329';
+      };
+
+      const denormalize = (point: Point) => ({
+        x: point.x * sizeRef.current.width,
+        y: point.y * sizeRef.current.height,
+      });
+
+      const drawStroke = (ctx: CanvasRenderingContext2D, stroke: Point[]) => {
+        if (stroke.length === 0) return;
+
+        const first = denormalize(stroke[0]);
+        if (stroke.length === 1) {
+          ctx.beginPath();
+          ctx.arc(first.x, first.y, 1.2, 0, Math.PI * 2);
+          ctx.fill();
+          return;
+        }
+
+        ctx.beginPath();
+        ctx.moveTo(first.x, first.y);
+        for (let index = 1; index < stroke.length; index += 1) {
+          const point = denormalize(stroke[index]);
+          ctx.lineTo(point.x, point.y);
+        }
+        ctx.stroke();
+      };
+
+      const redraw = () => {
+        const ctx = context();
+        if (!ctx) return;
+        ctx.clearRect(0, 0, sizeRef.current.width, sizeRef.current.height);
+        configureContext(ctx);
+        for (const stroke of strokesRef.current) drawStroke(ctx, stroke);
+        if (activeStrokeRef.current) drawStroke(ctx, activeStrokeRef.current);
+      };
+
       const setupCanvas = () => {
-        const dpr = window.devicePixelRatio || 1;
+        const dpr = Math.min(window.devicePixelRatio || 1, 3);
         const rect = container.getBoundingClientRect();
-        canvas.width = rect.width * dpr;
-        canvas.height = rect.height * dpr;
+        const width = Math.max(1, rect.width);
+        const height = Math.max(1, rect.height);
+
+        if (
+          Math.abs(sizeRef.current.width - width) < 0.5 &&
+          Math.abs(sizeRef.current.height - height) < 0.5 &&
+          canvas.width === Math.round(width * dpr) &&
+          canvas.height === Math.round(height * dpr)
+        ) {
+          return;
+        }
+
+        sizeRef.current = { width, height };
+        canvas.width = Math.round(width * dpr);
+        canvas.height = Math.round(height * dpr);
         canvas.style.width = `${rect.width}px`;
         canvas.style.height = `${rect.height}px`;
 
-        const ctx = canvas.getContext('2d');
+        const ctx = context();
         if (ctx) {
-          ctx.scale(dpr, dpr);
+          ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+          configureContext(ctx);
         }
-
-        return { width: rect.width, height: rect.height };
+        redraw();
       };
 
       setupCanvas();
 
-      // Initialize signature_pad with natural signing parameters
-      const pad = new SignaturePad(canvas, {
-        // Velocity-based width changes for natural stroke
-        velocityFilterWeight: 0.7,
-        minWidth: 0.8,
-        maxWidth: 2.5,
-        minDistance: 1,
-        // Rendering options
-        penColor: '#1f2329',
-        backgroundColor: 'rgba(0,0,0,0)', // Transparent
-        throttle: 0, // No throttling for maximum responsiveness
-        // Line cap/join for smooth strokes
-        canvasContextOptions: {
-          alpha: true,
-        },
-      });
-
-      padRef.current = pad;
-
-      // Track empty state changes
-      const handleBeginStroke = () => {
-        // Focus canvas for visual feedback (not required for drawing)
-        canvas.focus();
-        setIsFocused(true);
+      const pointFromClient = (clientX: number, clientY: number): Point => {
+        const rect = canvas.getBoundingClientRect();
+        return {
+          x: Math.min(1, Math.max(0, (clientX - rect.left) / rect.width)),
+          y: Math.min(1, Math.max(0, (clientY - rect.top) / rect.height)),
+        };
       };
 
-      const handleEndStroke = () => {
-        setIsFocused(false);
-        const empty = pad.isEmpty();
-        setIsEmptyState(empty);
-        if (!empty) {
-          onDrawRef.current?.();
+      const appendPoints = (points: Point[]) => {
+        const stroke = activeStrokeRef.current;
+        const ctx = context();
+        if (!stroke || !ctx || points.length === 0) return;
+
+        const previous = stroke[stroke.length - 1];
+        stroke.push(...points);
+        configureContext(ctx);
+
+        if (previous) {
+          ctx.beginPath();
+          const start = denormalize(previous);
+          ctx.moveTo(start.x, start.y);
+          for (const point of points) {
+            const next = denormalize(point);
+            ctx.lineTo(next.x, next.y);
+          }
+          ctx.stroke();
+        } else {
+          drawStroke(ctx, stroke);
         }
       };
 
-      pad.addEventListener('beginStroke', handleBeginStroke);
-      pad.addEventListener('endStroke', handleEndStroke);
+      const beginStroke = (point: Point) => {
+        if (activeStrokeRef.current) return;
+        activeStrokeRef.current = [point];
+        setIsDrawing(true);
+        setIsEmptyState(false);
+        const ctx = context();
+        if (ctx) drawStroke(ctx, activeStrokeRef.current);
+      };
 
-      // Handle resize with ResizeObserver
-      const resizeObserver = new ResizeObserver(() => {
-        // Save current signature data
-        const data = pad.toData();
-        
-        // Resize canvas
-        setupCanvas();
-        
-        // Restore signature
-        if (data.length > 0) {
-          pad.fromData(data);
+      const endStroke = () => {
+        const stroke = activeStrokeRef.current;
+        if (!stroke) return;
+        strokesRef.current.push(stroke);
+        activeStrokeRef.current = null;
+        activePointerRef.current = null;
+        setIsDrawing(false);
+        onDrawRef.current?.();
+      };
+
+      const supportsPointerEvents = 'PointerEvent' in window;
+
+      const handlePointerDown = (event: PointerEvent) => {
+        if (event.pointerType === 'mouse' && event.button !== 0) return;
+        if (!event.isPrimary) return;
+        event.preventDefault();
+        activePointerRef.current = event.pointerId;
+        canvas.setPointerCapture?.(event.pointerId);
+        beginStroke(pointFromClient(event.clientX, event.clientY));
+      };
+
+      const handlePointerMove = (event: PointerEvent) => {
+        if (activePointerRef.current !== event.pointerId || !activeStrokeRef.current) return;
+        event.preventDefault();
+        const coalescedEvents = event.getCoalescedEvents?.() ?? [];
+        const events = coalescedEvents.length > 0 ? coalescedEvents : [event];
+        appendPoints(events.map((item) => pointFromClient(item.clientX, item.clientY)));
+      };
+
+      const handlePointerEnd = (event: PointerEvent) => {
+        if (activePointerRef.current !== event.pointerId) return;
+        event.preventDefault();
+        if (event.type === 'pointerup') {
+          appendPoints([pointFromClient(event.clientX, event.clientY)]);
         }
-      });
+        if (canvas.hasPointerCapture?.(event.pointerId)) {
+          canvas.releasePointerCapture(event.pointerId);
+        }
+        endStroke();
+      };
+
+      let activeTouchId: number | null = null;
+      const findTouch = (list: TouchList) =>
+        Array.from(list).find((touch) => touch.identifier === activeTouchId);
+
+      const handleTouchStart = (event: TouchEvent) => {
+        if (activeTouchId !== null || event.changedTouches.length === 0) return;
+        event.preventDefault();
+        const touch = event.changedTouches[0];
+        activeTouchId = touch.identifier;
+        beginStroke(pointFromClient(touch.clientX, touch.clientY));
+      };
+
+      const handleTouchMove = (event: TouchEvent) => {
+        const touch = findTouch(event.changedTouches);
+        if (!touch) return;
+        event.preventDefault();
+        appendPoints([pointFromClient(touch.clientX, touch.clientY)]);
+      };
+
+      const handleTouchEnd = (event: TouchEvent) => {
+        const touch = findTouch(event.changedTouches);
+        if (!touch) return;
+        event.preventDefault();
+        if (event.type === 'touchend') {
+          appendPoints([pointFromClient(touch.clientX, touch.clientY)]);
+        }
+        activeTouchId = null;
+        endStroke();
+      };
+
+      let mouseDown = false;
+      const handleMouseDown = (event: MouseEvent) => {
+        if (event.button !== 0) return;
+        event.preventDefault();
+        mouseDown = true;
+        beginStroke(pointFromClient(event.clientX, event.clientY));
+      };
+
+      const handleMouseMove = (event: MouseEvent) => {
+        if (!mouseDown) return;
+        event.preventDefault();
+        appendPoints([pointFromClient(event.clientX, event.clientY)]);
+      };
+
+      const handleMouseUp = (event: MouseEvent) => {
+        if (!mouseDown) return;
+        event.preventDefault();
+        appendPoints([pointFromClient(event.clientX, event.clientY)]);
+        mouseDown = false;
+        endStroke();
+      };
+
+      if (supportsPointerEvents) {
+        canvas.addEventListener('pointerdown', handlePointerDown);
+        canvas.addEventListener('pointermove', handlePointerMove);
+        canvas.addEventListener('pointerup', handlePointerEnd);
+        canvas.addEventListener('pointercancel', handlePointerEnd);
+      } else {
+        canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
+        canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
+        canvas.addEventListener('touchend', handleTouchEnd, { passive: false });
+        canvas.addEventListener('touchcancel', handleTouchEnd, { passive: false });
+        canvas.addEventListener('mousedown', handleMouseDown);
+        window.addEventListener('mousemove', handleMouseMove);
+        window.addEventListener('mouseup', handleMouseUp);
+      }
+
+      const resizeObserver = new ResizeObserver(setupCanvas);
 
       resizeObserver.observe(container);
 
-      // Handle DPR changes (e.g., moving between displays)
-      const mediaQuery = window.matchMedia?.(`(resolution: ${window.devicePixelRatio}dppx)`);
-      const handleDprChange = () => {
-        const data = pad.toData();
-        setupCanvas();
-        if (data.length > 0) {
-          pad.fromData(data);
-        }
-      };
-
-      mediaQuery?.addEventListener?.('change', handleDprChange);
-
       return () => {
-        pad.removeEventListener('beginStroke', handleBeginStroke);
-        pad.removeEventListener('endStroke', handleEndStroke);
         resizeObserver.disconnect();
-        mediaQuery?.removeEventListener?.('change', handleDprChange);
-        padRef.current = null;
+        if (supportsPointerEvents) {
+          canvas.removeEventListener('pointerdown', handlePointerDown);
+          canvas.removeEventListener('pointermove', handlePointerMove);
+          canvas.removeEventListener('pointerup', handlePointerEnd);
+          canvas.removeEventListener('pointercancel', handlePointerEnd);
+        } else {
+          canvas.removeEventListener('touchstart', handleTouchStart);
+          canvas.removeEventListener('touchmove', handleTouchMove);
+          canvas.removeEventListener('touchend', handleTouchEnd);
+          canvas.removeEventListener('touchcancel', handleTouchEnd);
+          canvas.removeEventListener('mousedown', handleMouseDown);
+          window.removeEventListener('mousemove', handleMouseMove);
+          window.removeEventListener('mouseup', handleMouseUp);
+        }
       };
     }, []);
 
@@ -151,15 +297,14 @@ const SignaturePadComponent = forwardRef<SignaturePadHandle, SignaturePadProps>(
       ref,
       () => ({
         getDataUrl: () => {
-          const pad = padRef.current;
-          if (!pad || pad.isEmpty()) return null;
-          return pad.toDataURL('image/png');
+          const canvas = canvasRef.current;
+          if (!canvas || strokesRef.current.length === 0) return null;
+          return canvas.toDataURL('image/png');
         },
         toBlob: () => {
-          const pad = padRef.current;
-          if (!pad || pad.isEmpty()) return null;
-          const dataUrl = pad.toDataURL('image/png');
-          // Convert data URL to blob synchronously
+          const canvas = canvasRef.current;
+          if (!canvas || strokesRef.current.length === 0) return null;
+          const dataUrl = canvas.toDataURL('image/png');
           const parts = dataUrl.split(',');
           const mime = parts[0].match(/:(.*?);/)?.[1] || 'image/png';
           const bstr = atob(parts[1]);
@@ -170,11 +315,17 @@ const SignaturePadComponent = forwardRef<SignaturePadHandle, SignaturePadProps>(
           return new Blob([u8arr], { type: mime });
         },
         clear: () => {
-          padRef.current?.clear();
+          strokesRef.current = [];
+          activeStrokeRef.current = null;
+          activePointerRef.current = null;
+          const canvas = canvasRef.current;
+          const ctx = canvas?.getContext('2d');
+          if (ctx && canvas) ctx.clearRect(0, 0, canvas.width, canvas.height);
           setIsEmptyState(true);
+          setIsDrawing(false);
         },
         isEmpty: () => {
-          return padRef.current?.isEmpty() ?? true;
+          return strokesRef.current.length === 0 && !activeStrokeRef.current;
         },
       }),
       [],
@@ -184,7 +335,7 @@ const SignaturePadComponent = forwardRef<SignaturePadHandle, SignaturePadProps>(
       <div
         ref={containerRef}
         className={`relative h-[180px] w-full rounded-lg border-2 bg-white transition-colors ${
-          isFocused
+          isDrawing
             ? 'border-blue-500 ring-2 ring-blue-200'
             : isEmptyState
               ? 'border-dashed border-gray-300'
@@ -195,20 +346,24 @@ const SignaturePadComponent = forwardRef<SignaturePadHandle, SignaturePadProps>(
           userSelect: 'none',
           WebkitUserSelect: 'none',
           WebkitTapHighlightColor: 'transparent',
+          WebkitTouchCallout: 'none',
+          overscrollBehavior: 'contain',
         }}
       >
         <canvas
           ref={canvasRef}
-          tabIndex={0}
           aria-label="手写签名区域"
           className="absolute inset-0 cursor-crosshair outline-none"
+          onContextMenu={(event) => event.preventDefault()}
+          onDragStart={(event) => event.preventDefault()}
           style={{
             touchAction: 'none',
             userSelect: 'none',
             WebkitUserSelect: 'none',
+            WebkitTouchCallout: 'none',
           }}
         />
-        {isEmptyState && !isFocused && (
+        {isEmptyState && !isDrawing && (
           <div className="pointer-events-none absolute inset-0 flex items-center justify-center text-gray-400">
             请在此处手写签名
           </div>

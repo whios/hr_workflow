@@ -11,7 +11,7 @@ HR 背景调查授权确认系统 — 极简公开填写版。候选人打开首
 - **Language**: TypeScript 5
 - **UI 组件**: shadcn/ui (基于 Radix UI)
 - **Styling**: Tailwind CSS 4
-- **Database**: better-sqlite3 (SQLite)
+- **Storage**: Vercel Blob（私有回执与签名存储）
 - **PDF**: jsPDF (含 WenQuanYi 中文字体)
 
 ## 目录结构
@@ -27,7 +27,6 @@ HR 背景调查授权确认系统 — 极简公开填写版。候选人打开首
 │   │   └── api/            # API 路由
 │   ├── components/         # 组件（含 signature-pad）
 │   └── lib/                # 工具库
-├── data/                   # SQLite 数据库 + 签名图片（运行时生成）
 └── package.json
 ```
 
@@ -52,6 +51,6 @@ HR 背景调查授权确认系统 — 极简公开填写版。候选人打开首
 
 - URL 仅含短回执编号（如 `BG260807-3A9F1B`），不携带任何敏感信息
 - 身份证号/手机号后端仅存储脱敏版本
-- 签名图片以文件存储在服务端
+- 回执与签名存储在 Vercel 私有 Blob 中
 - 前端不存储完整敏感信息
-- 无管理后台、无密码、无环境变量依赖
+- 无管理后台、无密码；部署环境仅需私有 Blob 连接密钥

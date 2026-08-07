@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import SignaturePad, { type SignaturePadHandle } from '@/components/signature-pad';
 import { Suspense } from 'react';
 import { AUTH_SCOPE_ITEMS, buildAuthSummary } from '@/lib/auth-text';
+import { Eraser } from 'lucide-react';
 
 /* ------------------------------------------------------------------ */
 /*  Link Generator (HR section at top)                                 */
@@ -296,10 +297,30 @@ function HomeContent() {
 
           {/* Signature */}
           <div className="rounded-lg bg-white p-4 shadow-sm">
-            <label className="mb-1.5 block text-sm font-medium text-[#1a1a2e]">
-              手写签名 <span className="text-[#dc2626]">*</span>
-            </label>
-            <SignaturePad ref={sigRef} />
+            <div className="mb-1.5 flex items-center justify-between gap-3">
+              <label className="text-sm font-medium text-[#1a1a2e]">
+                手写签名 <span className="text-[#dc2626]">*</span>
+              </label>
+              <button
+                type="button"
+                onClick={() => sigRef.current?.clear()}
+                className="inline-flex min-h-8 items-center gap-1 rounded-md px-2 text-xs font-medium text-[#64748b] active:bg-[#f1f5f9]"
+              >
+                <Eraser className="h-3.5 w-3.5" aria-hidden="true" />
+                清除重签
+              </button>
+            </div>
+            <SignaturePad
+              ref={sigRef}
+              onDraw={() => {
+                setErrors((current) => {
+                  if (!current.signature) return current;
+                  const next = { ...current };
+                  delete next.signature;
+                  return next;
+                });
+              }}
+            />
             {errors.signature && (
               <p className="mt-1 text-xs text-[#dc2626]">{errors.signature}</p>
             )}
