@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="description" content="候选人背景调查授权确认书，含电子签名回执，仅供 HR 内部风险审查使用。">
+<meta property="og:title" content="背景调查授权确认书">
+<meta property="og:description" content="候选人背景调查授权确认书，含电子签名回执，仅供 HR 内部风险审查使用。">
+<title id="pageTitle">背景调查授权确认书</title>
+<style>
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body { margin: 0; padding: 16px; font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif; background: #f5f6f8; color: #1f2329; line-height: 1.7; }
+  .wrap { max-width: 560px; margin: 0 auto; background: #fff; border-radius: 14px; padding: 20px 18px 28px; box-shadow: 0 2px 12px rgba(0,0,0,.06); }
+  h1 { font-size: 20px; text-align: center; margin: 4px 0 2px; }
+  .sub { text-align: center; color: #8a9099; font-size: 12px; margin-bottom: 14px; word-break: break-all; }
+  h2 { font-size: 16px; margin: 22px 0 10px; padding-left: 10px; border-left: 4px solid #2f7dff; }
+  .n { display: inline-block; width: 22px; height: 22px; line-height: 22px; text-align: center; background: #2f7dff; color: #fff; border-radius: 50%; font-size: 13px; margin-right: 8px; }
+  .card { background: #f8f9fb; border: 1px solid #eef0f3; border-radius: 10px; padding: 12px 14px; }
+  .field { display: flex; align-items: center; padding: 7px 0; border-bottom: 1px dashed #e8eaed; }
+  .field:last-child { border-bottom: none; }
+  .field label { width: 86px; color: #5a6068; font-size: 14px; flex: none; }
+  .field .val { flex: 1; font-weight: 600; word-break: break-all; }
+  .edit { width: 100%; padding: 9px 10px; border: 1px solid #d6dae0; border-radius: 8px; font-size: 15px; background: #fff; }
+  .edit:focus { outline: none; border-color: #2f7dff; }
+  ol { margin: 6px 0; padding-left: 22px; }
+  ol li { margin: 6px 0; font-size: 14px; }
+  p { font-size: 14px; margin: 8px 0; }
+  strong { color: #2b3038; }
+  .sign-box { margin-top: 10px; border: 1px dashed #c7ccd3; border-radius: 10px; background: #fcfcfd; position: relative; }
+  #sigPad { width: 100%; height: 160px; display: block; touch-action: none; border-radius: 10px; }
+  .sig-tip { position: absolute; top: 50%; left: 0; right: 0; text-align: center; color: #b3b9c2; font-size: 14px; pointer-events: none; transform: translateY(-50%); }
+  .sig-btns { display: flex; gap: 10px; margin-top: 8px; }
+  .btn { flex: 1; padding: 11px; border-radius: 9px; border: none; font-size: 15px; font-weight: 600; cursor: pointer; }
+  .btn-ghost { background: #eef1f5; color: #4a5058; }
+  .btn-primary { background: #2f7dff; color: #fff; width: 100%; margin-top: 16px; padding: 14px; font-size: 16px; }
+  .agree { display: flex; align-items: flex-start; gap: 8px; margin-top: 14px; font-size: 13px; color: #5a6068; }
+  .agree input { margin-top: 3px; width: 16px; height: 16px; flex: none; }
+  .err { color: #e54545; font-size: 13px; margin-top: 8px; min-height: 18px; }
+  /* 回执 */
+  #receipt { display: none; margin-top: 18px; border: 1px solid #d6dae0; border-radius: 12px; padding: 16px; background: #fff; }
+  #receipt.show { display: block; }
+  .rc-title { text-align: center; font-weight: 700; font-size: 16px; margin-bottom: 12px; }
+  .rc-row { display: flex; padding: 6px 0; border-bottom: 1px dashed #eceef1; font-size: 14px; }
+  .rc-row .k { width: 92px; color: #8a9099; flex: none; }
+  .rc-row .v { flex: 1; word-break: break-all; font-weight: 600; }
+  #rcSig { max-width: 100%; border: 1px solid #eee; border-radius: 6px; margin-top: 6px; }
+  /* 仅锁定可编辑/可操作的表单控件，不影响回执区按钮（否则 pointer-events:none 会连回执按钮一起封死） */
+  .locked .edit, .locked #sigPad, .locked #clearSig, .locked #confirmBtn, .locked #agree { pointer-events: none; opacity: .6; }
+  .footer-note { text-align: center; color: #aab0b8; font-size: 11px; margin-top: 18px; }
+  .receipt-actions { margin-top: 16px; }
+  .receipt-actions .btn-primary { margin-top: 0; }
+  @media print {
+    body { background: #fff; padding: 0; }
+    .wrap { box-shadow: none; max-width: 100%; }
+    .noprint { display: none !important; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap" id="doc">
+
+  <h1>背景调查授权确认书</h1>
+  <div class="sub" id="docNo">编号：自动生成</div>
+  <div class="card" id="prefillBanner" style="display:none; margin-bottom:14px; border-color:#2f7dff;">
+    <div style="font-size:13px;color:#5a6068;margin-bottom:4px;">以下信息已由 HR 预填，请核对无误后完成签名确认：</div>
+    <div class="field"><label>调查主体</label><span class="val" id="bCompany">—</span></div>
+    <div class="field"><label>授权人</label><span class="val" id="bName">—</span></div>
+  </div>
+
+  <!-- HR 填写区（可编辑） -->
+  <section class="noprint" id="hrSection">
+    <h2><span class="n">0</span>HR 填写（发送前请补全）</h2>
+    <div class="card">
+      <div class="field">
+        <label>公司全称</label>
+        <input class="edit" id="hrCompany" placeholder="请输入贵司全称（必填）">
+      </div>
+      <div class="field">
+        <label>授权人姓名</label>
+        <input class="edit" id="hrName" placeholder="请输入候选人姓名（必填）">
+      </div>
+      <button class="btn btn-primary" id="genLink" style="margin-top:12px;">生成发送链接</button>
+      <input class="edit" id="linkBox" style="display:none; margin-top:10px; font-size:13px; color:#2f7dff;" readonly>
+      <button class="btn btn-ghost" id="copyLink" style="display:none; margin-top:8px;">复制链接</button>
+      <div class="err" id="errMsg2" style="margin-top:6px;"></div>
+      <div style="font-size:12px;color:#8a9099;margin-top:6px;line-height:1.6;">填好「公司全称 + 授权人姓名」后点「生成发送链接」，把生成的链接发给候选人——对方打开即已自动预填，直接签名即可，无需再手填。</div>
+    </div>
+  </section>
+
+  <!-- 1 授权人 -->
+  <section>
+    <h2><span class="n">1</span>授权人</h2>
+    <div class="card">
+      <div class="field">
+        <label>授权人</label>
+        <input class="edit" id="cName" placeholder="候选人姓名">
+      </div>
+    </div>
+  </section>
+
+  <!-- 2 授权范围 -->
+  <section>
+    <h2><span class="n">2</span>授权范围（逐项列明）</h2>
+    <div class="card">
+      <p>本人自愿授权对以下事项进行核实，范围以本清单为限，不作扩大解释：</p>
+      <ol>
+        <li>身份基础信息核验（姓名、证件号一致性）；</li>
+        <li>社会聘用记录与任职/参股企业工商信息（含担任法定代表人、股东、高管情况）；</li>
+        <li>工作经历核实（既往任职单位、岗位、任职时间、离职原因等）；</li>
+        <li>司法涉诉与裁判文书信息；</li>
+        <li>失信被执行与限制高消费信息；</li>
+        <li>劳动仲裁与劳动争议记录；</li>
+        <li>学历、学位及职业资格证书真实性核验。</li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- 3 授权目的与信息使用 -->
+  <section>
+    <h2><span class="n">3</span>授权目的与信息使用</h2>
+    <p><strong>目的：</strong>仅用于本次录用决策前的风险审查与岗位适配性判断，不作授权范围以外用途。</p>
+    <p><strong>使用与保密：</strong>核查信息严格保密，仅限 HR 及必要决策人员内部使用；录用/未录用后按档案制度规定的期限销毁或返还。</p>
+  </section>
+
+  <!-- 4 本人确认签署 -->
+  <section>
+    <h2><span class="n">4</span>本人确认签署</h2>
+    <div class="card">
+      <div class="field">
+        <label>身份证号</label>
+        <input class="edit" id="cId" placeholder="请输入身份证号" inputmode="text">
+      </div>
+      <div class="field">
+        <label>联系电话</label>
+        <input class="edit" id="cPhone" placeholder="请输入手机号" inputmode="numeric">
+      </div>
+      <div style="margin-top:10px;">
+        <label style="font-size:14px;color:#5a6068;">手写签名</label>
+        <div class="sign-box">
+          <canvas id="sigPad"></canvas>
+          <div class="sig-tip" id="sigTip">请在此处手写签名</div>
+        </div>
+        <div class="sig-btns noprint">
+          <button class="btn btn-ghost" id="clearSig">清除重写</button>
+        </div>
+      </div>
+      <div class="agree noprint">
+        <input type="checkbox" id="agree">
+        <span>本人已阅读并理解上述全部内容，自愿签署本授权，确认所填信息真实有效。</span>
+      </div>
+      <div class="err noprint" id="errMsg"></div>
+      <button class="btn btn-primary noprint" id="confirmBtn">确认授权并生成回执</button>
+    </div>
+  </section>
+
+  <!-- 回执（候选人侧：生成链接/图片转发 HR） -->
+  <div id="receipt">
+    <div class="rc-title">授权确认回执</div>
+    <div class="rc-row"><div class="k">授权编号</div><div class="v" id="rcNo">—</div></div>
+    <div class="rc-row"><div class="k">调查主体</div><div class="v" id="rcCompany">—</div></div>
+    <div class="rc-row"><div class="k">授权人</div><div class="v" id="rcName">—</div></div>
+    <div class="rc-row"><div class="k">确认时间</div><div class="v" id="rcTime">—</div></div>
+
+    <!-- 主要操作：复制回执链接发给 HR（HR 打开即见完整授权确认书） -->
+    <div class="noprint" style="margin-top:14px; padding:14px; background:#eef4ff; border:1px solid #cfe0ff; border-radius:10px;">
+      <div style="font-size:14px;color:#1f2329;font-weight:600;margin-bottom:8px;">📋 回执链接已生成</div>
+      <div style="font-size:12px;color:#5a6068;line-height:1.7;margin-bottom:8px;">复制下方链接发给 HR，HR 点开即可看到<strong>完整授权确认书</strong>（含授权范围、本人签署信息与电子签名）。</div>
+      <div id="rcLinkBox" style="font-size:12px;color:#2f7dff;word-break:break-all;background:#fff;border:1px solid #d6e2ff;border-radius:8px;padding:8px 10px;line-height:1.5;user-select:text;-webkit-user-select:text;">（签名后自动生成）</div>
+      <button class="btn btn-primary" id="copyRcLink" style="margin-top:10px;">复制回执链接发给 HR</button>
+      <div class="err noprint" id="errMsg3" style="margin-top:6px;"></div>
+    </div>
+
+    <!-- 备选：完整授权书截图（微信内长按转发） -->
+    <div class="noprint" style="margin-top:14px; padding:14px; background:#e7f2ff; border:1px solid #bfd9ff; border-radius:10px;">
+      <div style="font-size:14px;color:#1f2329;font-weight:600;margin-bottom:8px;">备选：完整授权书截图</div>
+      <div style="font-size:13px;color:#2f7dff;line-height:1.9;">
+        · 微信内请<b>长按下方完整授权书截图</b> → 选「转发给朋友」发 HR<br>
+        · 若长按无菜单：点右上角「···」→「在浏览器打开」本页，即可长按保存或点按钮转发
+      </div>
+    </div>
+
+    <!-- 完整授权书截图（canvas 生成，含全部信息） -->
+    <img id="receiptImg" style="max-width:100%; border:1px solid #e8eaed; border-radius:8px; box-shadow:0 2px 8px rgba(0,0,0,.06); display:none; margin-top:12px;">
+
+    <div class="receipt-actions noprint" style="margin-top:14px;">
+      <button class="btn btn-primary" id="saveImg">保存完整授权书图片</button>
+      <div class="err noprint" id="errMsg4" style="margin-top:6px;"></div>
+    </div>
+
+    <div style="font-size:12px;color:#8a9099;margin-top:8px;line-height:1.6;">上方截图为完整《背景调查授权确认书》（含授权范围、本人确认签署信息、电子签名及回执），HR 收到该图片即视为有效回执。</div>
+  </div>
+
+  <div class="footer-note">本授权书为通用模板，请在发送前由 HR 补全公司全称与授权人姓名。</div>
+</div>
+
+<!-- HR 查看端：候选人回传的回执链接（#r=...），展示完整授权确认书 -->
+<div class="wrap" id="viewReceipt" style="display:none;">
+  <h1>背景调查授权确认书</h1>
+  <div class="sub" id="vDocNo">候选人已签署 · 请 HR 核对存档</div>
+  <div id="viewBook"><!-- 由 JS 动态填充完整授权书内容 --></div>
+  <div class="footer-note">本回执由候选人通过电子签名确认后生成，与本人手写签名具同等效力。请 HR 核对无误后归档，并与本报告同档保存。</div>
+  <button class="btn btn-primary noprint" onclick="window.print()" style="margin-top:14px;">打印 / 存为 PDF 存档</button>
+</div>
+
+<script>
+(function () {
+  var no = 'BC-RZ-' + new Date().toISOString().slice(0,10).replace(/-/g,'') + '-' + Math.floor(Math.random()*9000+1000);
+  var receiptData = null;
+
+  // ===== HR 查看端：解析 #r= 回执链接 =====
+  function escapeHtml(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+  function showViewReceipt(d) {
+    document.getElementById('doc').style.display = 'none';
+    document.getElementById('vDocNo').textContent = '编号：' + (d.no || '—') + ' · 候选人已签署 · 请 HR 核对存档';
+    var book = document.getElementById('viewBook');
+    var scope = [
+      '1. 身份基础信息核验（姓名、证件号一致性）；',
+      '2. 社会聘用记录与任职/参股企业工商信息（含担任法定代表人、股东、高管情况）；',
+      '3. 工作经历核实（既往任职单位、岗位、任职时间、离职原因等）；',
+      '4. 司法涉诉与裁判文书信息；',
+      '5. 失信被执行与限制高消费信息；',
+      '6. 劳动仲裁与劳动争议记录；',
+      '7. 学历、学位及职业资格证书真实性核验。'
+    ];
+    var h = '';
+    h += '<div class="field"><label>调查主体</label><span class="val">' + escapeHtml(d.company) + '</span></div>';
+    h += '<div class="field"><label>授权人</label><span class="val">' + escapeHtml(d.name) + '</span></div>';
+    h += '<h2 style="margin-top:18px;"><span class="n">1</span>授权人</h2>';
+    h += '<div class="card"><div class="field"><label>授权人</label><span class="val">' + escapeHtml(d.name) + '</span></div></div>';
+    h += '<h2><span class="n">2</span>授权范围（逐项列明）</h2>';
+    h += '<div class="card"><p>本人自愿授权对以下事项进行核实，范围以本清单为限，不作扩大解释：</p><ol>';
+    for (var i = 0; i < scope.length; i++) h += '<li>' + scope[i] + '</li>';
+    h += '</ol></div>';
+    h += '<h2><span class="n">3</span>授权目的与信息使用</h2>';
+    h += '<p><strong>目的：</strong>仅用于本次录用决策前的风险审查与岗位适配性判断，不作授权范围以外用途。</p>';
+    h += '<p><strong>使用与保密：</strong>核查信息严格保密，仅限 HR 及必要决策人员内部使用；录用/未录用后按档案制度规定的期限销毁或返还。</p>';
+    h += '<h2><span class="n">4</span>本人确认签署</h2>';
+    h += '<div class="card">';
+    h += '<div class="field"><label>身份证号</label><span class="val">' + escapeHtml(d.fullId || d.id) + '</span></div>';
+    h += '<div class="field"><label>联系电话</label><span class="val">' + escapeHtml(d.fullPhone || d.phone) + '</span></div>';
+    h += '<div style="margin-top:10px;"><label style="font-size:14px;color:#5a6068;">手写签名</label><img src="' + escapeHtml(d.sig) + '" style="max-width:100%; border:1px solid #eee; border-radius:6px; margin-top:6px;"></div>';
+    h += '</div>';
+    h += '<h2>授权确认回执</h2>';
+    h += '<div class="card">';
+    h += '<div class="field"><label>授权编号</label><span class="val">' + escapeHtml(d.no) + '</span></div>';
+    h += '<div class="field"><label>调查主体</label><span class="val">' + escapeHtml(d.company) + '</span></div>';
+    h += '<div class="field"><label>授权人</label><span class="val">' + escapeHtml(d.name) + '</span></div>';
+    h += '<div class="field"><label>身份证号</label><span class="val">' + escapeHtml(d.fullId || d.id) + '</span></div>';
+    h += '<div class="field"><label>联系电话</label><span class="val">' + escapeHtml(d.fullPhone || d.phone) + '</span></div>';
+    h += '<div class="field"><label>确认时间</label><span class="val">' + escapeHtml(d.time) + '</span></div>';
+    h += '<div class="field" style="align-items:flex-start;"><label>电子签名</label><span class="val"><img src="' + escapeHtml(d.sig) + '" style="max-width:100%; border:1px solid #eee; border-radius:6px;"></span></div>';
+    h += '</div>';
+    book.innerHTML = h;
+    document.getElementById('viewReceipt').style.display = 'block';
+  }
+  if (location.hash && location.hash.indexOf('#r=') === 0) {
+    try {
+      var b64 = location.hash.slice(3);
+      var json = decodeURIComponent(escape(atob(b64)));
+      showViewReceipt(JSON.parse(json));
+      return; // 已为回执查看模式，不再绑定签署逻辑
+    } catch (e) { /* 解析失败，继续正常显示签署页 */ }
+  }
+
+  document.getElementById('docNo').textContent = '编号：' + no;
+
+  // URL 预填参数（HR 生成的专属链接带 ?c=公司&n=姓名）
+  function getParam(k) {
+    var m = new RegExp('[?&]' + k + '=([^&]*)').exec(window.location.search);
+    return m ? decodeURIComponent(m[1].replace(/\+/g, ' ')) : '';
+  }
+  var pc = getParam('c'), pn = getParam('n');
+  if (pc || pn) {
+    document.getElementById('hrCompany').value = pc;
+    document.getElementById('hrName').value = pn;
+    document.getElementById('cName').value = pn;
+    document.getElementById('hrSection').style.display = 'none';
+    var banner = document.getElementById('prefillBanner');
+    banner.style.display = 'block';
+    document.getElementById('bCompany').textContent = pc || '（未填）';
+    document.getElementById('bName').textContent = pn || '（未填）';
+  }
+
+  // HR 生成专属发送链接
+  document.getElementById('genLink').addEventListener('click', function () {
+    var err2 = document.getElementById('errMsg2');
+    err2.textContent = '';
+    var c = document.getElementById('hrCompany').value.trim();
+    var n = document.getElementById('hrName').value.trim();
+    if (!c || !n) { err2.textContent = '请先填好「公司全称」和「授权人姓名」。'; return; }
+    var url = window.location.origin + window.location.pathname +
+      '?c=' + encodeURIComponent(c) + '&n=' + encodeURIComponent(n);
+    var box = document.getElementById('linkBox');
+    box.value = url; box.style.display = 'block';
+    document.getElementById('copyLink').style.display = 'inline-block';
+  });
+  document.getElementById('copyLink').addEventListener('click', function () {
+    var box = document.getElementById('linkBox');
+    box.select();
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(box.value).then(function () {
+        document.getElementById('copyLink').textContent = '已复制 ✓';
+      }, function () { document.execCommand('copy'); });
+    } else {
+      document.execCommand('copy');
+      document.getElementById('copyLink').textContent = '已复制 ✓';
+    }
+  });
+
+  // HR 填写联动到授权人姓名
+  var hrName = document.getElementById('hrName');
+  var cName = document.getElementById('cName');
+  hrName.addEventListener('input', function () { cName.value = hrName.value; });
+  cName.addEventListener('input', function () { hrName.value = cName.value; });
+
+  // 签名画板
+  var canvas = document.getElementById('sigPad');
+  var ctx = canvas.getContext('2d');
+  var tip = document.getElementById('sigTip');
+  var drawing = false, hasSig = false;
+  function resize() {
+    var ratio = window.devicePixelRatio || 1;
+    var w = canvas.clientWidth, h = canvas.clientHeight;
+    canvas.width = w * ratio; canvas.height = h * ratio;
+    ctx.scale(ratio, ratio);
+    ctx.lineWidth = 2.4; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.strokeStyle = '#1f2329';
+  }
+  window.addEventListener('load', resize);
+  window.addEventListener('resize', function () { if (!hasSig) resize(); });
+  function pos(e) {
+    var r = canvas.getBoundingClientRect();
+    var p = e.touches ? e.touches[0] : e;
+    return { x: p.clientX - r.left, y: p.clientY - r.top };
+  }
+  function start(e) { e.preventDefault(); drawing = true; var p = pos(e); ctx.beginPath(); ctx.moveTo(p.x, p.y); if (tip) tip.style.display = 'none'; }
+  function move(e) { if (!drawing) return; e.preventDefault(); var p = pos(e); ctx.lineTo(p.x, p.y); ctx.stroke(); hasSig = true; }
+  function end() { drawing = false; }
+  canvas.addEventListener('mousedown', start); canvas.addEventListener('mousemove', move);
+  window.addEventListener('mouseup', end);
+  canvas.addEventListener('touchstart', start, { passive: false });
+  canvas.addEventListener('touchmove', move, { passive: false });
+  canvas.addEventListener('touchend', end);
+  document.getElementById('clearSig').addEventListener('click', function () {
+    ctx.clearRect(0, 0, canvas.width, canvas.height); hasSig = false; if (tip) tip.style.display = '';
+  });
+
+  // 确认
+  document.getElementById('confirmBtn').addEventListener('click', function () {
+    var err = document.getElementById('errMsg');
+    err.textContent = '';
+    var company = document.getElementById('hrCompany').value.trim();
+    var name = cName.value.trim();
+    var id = document.getElementById('cId').value.trim();
+    var phone = document.getElementById('cPhone').value.trim();
+    var agree = document.getElementById('agree').checked;
+    if (!company) { err.textContent = '请先由 HR 补全「公司全称」。'; return; }
+    if (!name) { err.textContent = '请填写授权人姓名。'; return; }
+    if (!/^\d{17}[\dXx]$/.test(id)) { err.textContent = '身份证号格式不正确（应为 18 位）。'; return; }
+    if (!/^1\d{10}$/.test(phone)) { err.textContent = '联系电话格式不正确（应为 11 位手机号）。'; return; }
+    if (!hasSig) { err.textContent = '请在签名区手写签名。'; return; }
+    if (!agree) { err.textContent = '请勾选自愿授权确认项。'; return; }
+
+    // 锁定并生成回执
+    var sigData = canvas.toDataURL('image/jpeg', 0.6);
+    var confirmTime = new Date().toLocaleString('zh-CN');
+    document.getElementById('rcNo').textContent = no;
+    document.getElementById('rcCompany').textContent = company;
+    document.getElementById('rcName').textContent = name;
+    document.getElementById('rcTime').textContent = confirmTime;
+    receiptData = {
+      no: no,
+      company: company,
+      name: name,
+      id: id.replace(/(\d{6})\d{8}(\w{4})/, '$1********$2'),
+      phone: phone.replace(/(\d{3})\d{4}(\d{4})/, '$1****$2'),
+      fullId: id,
+      fullPhone: phone,
+      time: confirmTime,
+      sig: sigData
+    };
+    document.getElementById('receipt').classList.add('show');
+    document.getElementById('doc').classList.add('locked');
+    // 微信分享卡片标题改为带授权人姓名
+    var shareTitle = '背景调查授权回执 · ' + name;
+    document.title = shareTitle;
+    document.querySelector('meta[property="og:title"]').setAttribute('content', shareTitle);
+    document.getElementById('pageTitle').textContent = shareTitle;
+    // 回填回执链接文本（供微信长按复制兜底）
+    try { document.getElementById('rcLinkBox').textContent = getReceiptUrl(); } catch (e) {}
+    // 生成完整授权书截图（含全部信息，长按可转发）
+    buildFullReceiptCanvas(function (canvas) {
+      var img = document.getElementById('receiptImg');
+      img.src = canvas.toDataURL('image/png');
+      img.style.display = 'block';
+    });
+    document.getElementById('receipt').scrollIntoView({ behavior: 'smooth' });
+  });
+
+  // ===== 回执：分享 / 复制 / 生成图片 =====
+  function getReceiptUrl() {
+    var payload = JSON.stringify(receiptData);
+    var b64 = btoa(unescape(encodeURIComponent(payload)));
+    return window.location.origin + window.location.pathname + '#r=' + b64;
+  }
+  // 移动端/微信内兼容的复制（优先 Clipboard API，失败用 textarea + execCommand 兜底）
+  function robustCopy(text, btn) {
+    var ok = false;
+    // 先尝试现代 Clipboard API
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      try {
+        navigator.clipboard.writeText(text);
+        ok = true;
+      } catch (e) { ok = false; }
+    }
+    if (!ok) {
+      var ta = document.createElement('textarea');
+      ta.value = text;
+      ta.setAttribute('readonly', '');
+      ta.style.cssText = 'position:fixed;left:0;top:0;width:1px;height:1px;opacity:0;z-index:-1;';
+      document.body.appendChild(ta);
+      var range = document.createRange();
+      range.selectNodeContents(ta);
+      var sel = window.getSelection();
+      sel.removeAllRanges();
+      sel.addRange(range);
+      ta.setSelectionRange(0, text.length);
+      ta.focus();
+      try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+      document.body.removeChild(ta);
+      sel.removeAllRanges();
+    }
+    if (btn) btn.textContent = ok ? '已复制 ✓' : '复制失败，请长按截图转发';
+    return ok;
+  }
+  // 生成回执图片（canvas 手绘，无外部依赖，可离线）
+  function buildReceiptCanvas(cb) {
+    var rows = [
+      ['授权编号', receiptData.no],
+      ['调查主体', receiptData.company],
+      ['授权人', receiptData.name],
+      ['身份证号', receiptData.id],
+      ['联系电话', receiptData.phone],
+      ['确认时间', receiptData.time]
+    ];
+    var W = 750, pad = 44, lineH = 52, titleH = 76, sigH = 210, footH = 56;
+    var H = pad * 2 + titleH + rows.length * lineH + sigH + footH;
+    var c = document.createElement('canvas');
+    c.width = W; c.height = H;
+    var x = c.getContext('2d');
+    x.fillStyle = '#ffffff'; x.fillRect(0, 0, W, H);
+    // 标题
+    x.fillStyle = '#1f2329'; x.font = 'bold 36px sans-serif'; x.textAlign = 'center';
+    x.fillText('授权确认回执', W / 2, pad + 48);
+    // 字段
+    x.textAlign = 'left';
+    var y = pad + titleH + 34;
+    for (var i = 0; i < rows.length; i++) {
+      x.fillStyle = '#8a9099'; x.font = '26px sans-serif';
+      x.fillText(rows[i][0], pad, y);
+      x.fillStyle = '#1f2329'; x.font = 'bold 27px sans-serif';
+      x.fillText(rows[i][1], pad + 168, y);
+      // 分隔线
+      x.strokeStyle = '#eceef1'; x.lineWidth = 1;
+      x.beginPath(); x.moveTo(pad, y + 16); x.lineTo(W - pad, y + 16); x.stroke();
+      y += lineH;
+    }
+    // 签名
+    x.fillStyle = '#8a9099'; x.font = '26px sans-serif';
+    x.fillText('电子签名', pad, y);
+    var img = new Image();
+    img.onload = function () {
+      var sx = pad + 168, sy = y - 26;
+      var sw = Math.min(380, img.width);
+      var sh = sw * img.height / img.width;
+      if (sh > sigH - 12) { sh = sigH - 12; sw = sh * img.width / img.height; }
+      try { x.drawImage(img, sx, sy, sw, sh); } catch (e) {}
+      cb(c);
+    };
+    img.onerror = function () { cb(c); };
+    img.src = receiptData.sig;
+  }
+
+  // 生成完整授权确认书截图（含授权范围、签署信息、签名、回执，可长按转发）
+  function buildFullReceiptCanvas(cb) {
+    var W = 750, pad = 40, inner = W - pad * 2;
+    var titleSize = 38, h2Size = 28, textSize = 23, smallSize = 19;
+    var lineH = 38, sectionGap = 28;
+    var c = document.createElement('canvas');
+    c.width = W; c.height = 2800;
+    var x = c.getContext('2d');
+    x.fillStyle = '#ffffff'; x.fillRect(0, 0, W, c.height);
+
+    function wrapText(ctx, txt, px, py, maxW, lh, size, color, bold) {
+      ctx.fillStyle = color || '#1f2329';
+      ctx.font = (bold ? 'bold ' : '') + size + 'px sans-serif';
+      ctx.textAlign = 'left';
+      var chars = txt.split('');
+      var line = '';
+      var ly = py;
+      for (var i = 0; i < chars.length; i++) {
+        var test = line + chars[i];
+        if (ctx.measureText(test).width > maxW && line !== '') {
+          ctx.fillText(line, px, ly);
+          line = chars[i];
+          ly += lh;
+        } else {
+          line = test;
+        }
+      }
+      ctx.fillText(line, px, ly);
+      return ly + lh;
+    }
+    function sectionTitle(py, t) {
+      x.fillStyle = '#2f7dff';
+      x.font = 'bold ' + h2Size + 'px sans-serif';
+      x.textAlign = 'left';
+      x.fillText(t, pad, py);
+      return py + h2Size + 14;
+    }
+    function keyValue(py, pairs) {
+      for (var i = 0; i < pairs.length; i++) {
+        x.fillStyle = '#5a6068'; x.font = textSize + 'px sans-serif';
+        x.fillText(pairs[i][0], pad, py);
+        x.fillStyle = '#1f2329'; x.font = 'bold ' + textSize + 'px sans-serif';
+        x.fillText(pairs[i][1], pad + 170, py);
+        py += lineH;
+      }
+      return py;
+    }
+
+    var y = pad + titleSize;
+    // 标题
+    x.fillStyle = '#1f2329'; x.font = 'bold ' + titleSize + 'px sans-serif'; x.textAlign = 'center';
+    x.fillText('背景调查授权确认书', W / 2, y);
+    y += 40;
+    x.textAlign = 'right'; x.font = smallSize + 'px sans-serif'; x.fillStyle = '#8a9099';
+    x.fillText('编号：' + no, W - pad, y);
+    y += sectionGap;
+
+    // 1 授权人
+    y = sectionTitle(y, '1 授权人');
+    y = keyValue(y, [['授权人', receiptData.name]]);
+    y += sectionGap;
+
+    // 2 授权范围
+    y = sectionTitle(y, '2 授权范围（逐项列明）');
+    y = wrapText(x, '本人自愿授权对以下事项进行核实，范围以本清单为限，不作扩大解释：', pad, y, inner, lineH, textSize, '#1f2329');
+    var scope = [
+      '1. 身份基础信息核验（姓名、证件号一致性）；',
+      '2. 社会聘用记录与任职/参股企业工商信息（含担任法定代表人、股东、高管情况）；',
+      '3. 工作经历核实（既往任职单位、岗位、任职时间、离职原因等）；',
+      '4. 司法涉诉与裁判文书信息；',
+      '5. 失信被执行与限制高消费信息；',
+      '6. 劳动仲裁与劳动争议记录；',
+      '7. 学历、学位及职业资格证书真实性核验。'
+    ];
+    for (var j = 0; j < scope.length; j++) {
+      y = wrapText(x, scope[j], pad, y, inner, lineH, textSize, '#1f2329');
+    }
+    y += sectionGap;
+
+    // 3 授权目的与信息使用
+    y = sectionTitle(y, '3 授权目的与信息使用');
+    y = wrapText(x, '目的：仅用于本次录用决策前的风险审查与岗位适配性判断，不作授权范围以外用途。', pad, y, inner, lineH, textSize, '#1f2329');
+    y = wrapText(x, '使用与保密：核查信息严格保密，仅限 HR 及必要决策人员内部使用；录用/未录用后按档案制度规定的期限销毁或返还。', pad, y, inner, lineH, textSize, '#1f2329');
+    y += sectionGap;
+
+    // 4 本人确认签署
+    y = sectionTitle(y, '4 本人确认签署');
+    y = keyValue(y, [['身份证号', receiptData.fullId], ['联系电话', receiptData.fullPhone]]);
+    y += 14;
+    x.fillStyle = '#1f2329'; x.font = textSize + 'px sans-serif'; x.textAlign = 'left';
+    x.fillText('电子签名', pad, y);
+    var sigLabelY = y;
+    y += 220 + sectionGap;
+
+    // 授权确认回执
+    y = sectionTitle(y, '授权确认回执');
+    y = keyValue(y, [
+      ['授权编号', receiptData.no],
+      ['调查主体', receiptData.company],
+      ['授权人', receiptData.name],
+      ['身份证号', receiptData.fullId],
+      ['联系电话', receiptData.fullPhone],
+      ['确认时间', receiptData.time]
+    ]);
+    y += 14;
+    x.fillText('电子签名', pad, y);
+    var sig2LabelY = y;
+    y += 220;
+
+    // 签名图（异步加载后绘制）
+    var img = new Image();
+    img.onload = function () {
+      var maxW = 400, maxH = 200;
+      function fit(w, h) {
+        var sw = Math.min(maxW, w);
+        var sh = sw * h / w;
+        if (sh > maxH) { sh = maxH; sw = sh * w / h; }
+        return { w: sw, h: sh };
+      }
+      var s = fit(img.width, img.height);
+      try {
+        x.drawImage(img, pad + 170, sigLabelY - 22, s.w, s.h);
+        x.drawImage(img, pad + 170, sig2LabelY - 22, s.w, s.h);
+      } catch (e) {}
+      // 底部说明
+      y += 50;
+      x.textAlign = 'center'; x.font = smallSize + 'px sans-serif'; x.fillStyle = '#8a9099';
+      x.fillText('本回执由系统自动生成，与本人手写电子签名具同等确认效力。', W / 2, y);
+      cb(c);
+    };
+    img.onerror = function () {
+      y += 50;
+      x.textAlign = 'center'; x.font = smallSize + 'px sans-serif'; x.fillStyle = '#8a9099';
+      x.fillText('本回执由系统自动生成，与本人手写电子签名具同等确认效力。', W / 2, y);
+      cb(c);
+    };
+    img.src = receiptData.sig;
+  }
+
+  // 保存完整授权书图片（微信内引导、系统浏览器用系统分享/下载）
+  document.getElementById('saveImg').addEventListener('click', function () {
+    var err4 = document.getElementById('errMsg4');
+    err4.textContent = '';
+    if (!receiptData) { err4.textContent = '回执尚未生成，请先完成签名确认。'; return; }
+    var isWechat = /MicroMessenger/i.test(navigator.userAgent);
+    if (isWechat) {
+      err4.style.color = '#e54545';
+      err4.textContent = '微信内无法直接保存图片。请：① 长按上方完整授权书截图 → 选「转发给朋友」；② 或点右上角「···」→「在浏览器打开」本页，再长按保存或点本按钮。';
+      return;
+    }
+    buildFullReceiptCanvas(function (canvas) {
+      var finished = false;
+      try {
+        if (navigator.canShare && typeof navigator.canShare === 'function' &&
+            navigator.canShare({ files: [new File([], 'x.png', { type: 'image/png' })] })) {
+          canvas.toBlob(function (blob) {
+            var file = new File([blob], '背景调查授权确认书_' + receiptData.name + '.png', { type: 'image/png' });
+            navigator.share({ files: [file], title: '背景调查授权确认书' }).catch(function () {});
+          }, 'image/png');
+          finished = true; return;
+        }
+      } catch (e) {}
+      try {
+        if (canvas.toBlob) {
+          canvas.toBlob(function (blob) {
+            var u = URL.createObjectURL(blob);
+            var a = document.createElement('a');
+            a.href = u; a.download = '背景调查授权确认书_' + receiptData.name + '.png';
+            document.body.appendChild(a); a.click(); document.body.removeChild(a);
+            setTimeout(function () { URL.revokeObjectURL(u); }, 1500);
+          }, 'image/png');
+          finished = true; return;
+        }
+      } catch (e) {}
+      err4.style.color = '#e54545';
+      err4.textContent = '当前环境不支持自动保存，请长按上方完整授权书截图 → 转发给朋友。';
+    });
+  });
+
+  // 复制回执链接（微信内失败则引导长按蓝色文字）
+  document.getElementById('copyRcLink').addEventListener('click', function () {
+    var err3 = document.getElementById('errMsg3');
+    err3.textContent = '';
+    if (!receiptData) { err3.textContent = '回执尚未生成，请先完成签名确认。'; return; }
+    var u = document.getElementById('rcLinkBox').textContent;
+    var ok = robustCopy(u, this);
+    if (ok) { err3.style.color = '#2f7dff'; err3.textContent = '回执链接已复制，发给 HR，HR 打开即见完整回执。'; }
+    else { err3.style.color = '#e54545'; err3.textContent = '复制失败，请长按上方蓝色链接文字 → 选「复制」。'; }
+  });
+})();
+</script>
+</body>
+</html>
