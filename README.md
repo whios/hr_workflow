@@ -2,6 +2,19 @@
 
 这是一个基于 [Next.js 16](https://nextjs.org) + [shadcn/ui](https://ui.shadcn.com) 的全栈应用项目，由扣子编程 CLI 创建。
 
+## HR 后台
+
+候选人填写流程保持公开，无需登录。HR 可通过 `/admin/login` 登录后台，查看和筛选回执、导出 CSV、批量下载 PDF，并查看登录与导出记录。
+
+本地和 Vercel 环境需要配置：
+
+```bash
+HR_ADMIN_PASSWORD=后台登录密码
+HR_SESSION_SECRET=至少32字节的随机字符串
+```
+
+完整字段示例见 `.env.example`。密码和会话密钥不得提交到 GitHub。
+
 ## 快速开始
 
 ### 启动开发服务器
