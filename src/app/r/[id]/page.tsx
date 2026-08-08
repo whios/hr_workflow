@@ -9,7 +9,7 @@ interface ReceiptData {
   companyName: string;
   candidateName: string;
   idNumber: string;
-  phoneMasked: string;
+  phoneNumber: string;
   authorizationText: string;
   createdAt: string;
 }
@@ -71,7 +71,7 @@ export default function ReceiptPage() {
         </div>
 
         <div className="mb-4 rounded-md border border-[#f59e0b]/40 bg-[#fffbeb] px-3 py-2.5 text-xs leading-relaxed text-[#92400e]">
-          本回执包含完整身份证号。回执链接等同于查看凭证，请仅限指定 HR 使用，不要转发给无关人员。
+          本回执包含完整身份证号和手机号。回执链接等同于查看凭证，请仅限指定 HR 使用，不要转发给无关人员。
         </div>
 
         {/* Authorization Details */}
@@ -80,7 +80,7 @@ export default function ReceiptPage() {
             <InfoRow label="公司全称" value={data.companyName} />
             <InfoRow label="授权人" value={data.candidateName} />
             <InfoRow label="身份证号" value={data.idNumber} />
-            <InfoRow label="手机号" value={data.phoneMasked} />
+            <InfoRow label="手机号" value={data.phoneNumber} />
             <InfoRow label="签署日期" value={data.createdAt} />
           </div>
 

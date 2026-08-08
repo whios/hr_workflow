@@ -24,7 +24,7 @@ export async function GET(
         companyName: auth.company_name,
         candidateName: auth.candidate_name,
         idNumber: auth.id_number ?? auth.id_number_masked,
-        phoneMasked: auth.phone_masked,
+        phoneNumber: auth.phone_number ?? auth.phone_masked,
         authorizationText: auth.authorization_text,
         createdAt: auth.created_at,
       },

@@ -65,7 +65,7 @@ export async function POST(request: NextRequest) {
     const authorizationText = buildAuthorizationText(
       companyName,
       candidateName,
-      idNumberMasked
+      idNumber
     );
 
     // Save to database
@@ -76,6 +76,7 @@ export async function POST(request: NextRequest) {
         candidate_name: candidateName,
         id_number: idNumber,
         id_number_masked: idNumberMasked,
+        phone_number: phone,
         phone_masked: phoneMasked,
         signature_key: signatureKey,
         authorization_text: authorizationText,

@@ -7,6 +7,7 @@ export interface AuthorizationRecord {
   candidate_name: string;
   id_number?: string;
   id_number_masked: string;
+  phone_number?: string;
   phone_masked: string;
   signature_key: string;
   authorization_text: string;
@@ -19,6 +20,7 @@ export async function insertAuthorization(data: {
   candidate_name: string;
   id_number: string;
   id_number_masked: string;
+  phone_number: string;
   phone_masked: string;
   signature_key: string;
   authorization_text: string;

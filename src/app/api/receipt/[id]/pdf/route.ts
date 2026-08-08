@@ -51,7 +51,7 @@ export async function GET(
       ['Company / 公司全称', auth.company_name],
       ['Candidate / 授权人', auth.candidate_name],
       ['ID Number / 身份证号', auth.id_number ?? auth.id_number_masked],
-      ['Phone / 手机号', auth.phone_masked],
+      ['Phone / 手机号', auth.phone_number ?? auth.phone_masked],
       ['Date / 签署日期', auth.created_at],
     ];
 
