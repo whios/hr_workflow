@@ -127,6 +127,10 @@ function AuthDeclaration() {
         <span className="font-medium">使用与保密：</span>
         核查信息严格保密，仅限 HR 及必要决策人员内部使用；录用/未录用后按档案制度规定的期限销毁或返还。
       </p>
+      <p className="mt-1 text-[13px] leading-relaxed text-[#1a1a2e]">
+        <span className="font-medium">敏感信息处理：</span>
+        完整身份证号将随授权回执保存并供指定 HR 进行身份核验；回执链接不得向无关人员转发。
+      </p>
     </div>
   );
 }
@@ -270,6 +274,9 @@ function HomeContent() {
                 maxLength={18}
                 className="w-full rounded-md border border-[#e2e8f0] px-3 py-2.5 text-[15px] text-[#1a1a2e] outline-none transition-colors focus:border-[#1e3a5f] focus:ring-1 focus:ring-[#1e3a5f]"
               />
+              <p className="mt-1.5 text-xs leading-relaxed text-[#64748b]">
+                完整号码将保存在授权回执中，仅用于指定 HR 进行身份核验。
+              </p>
               {errors.idNumber && (
                 <p className="mt-1 text-xs text-[#dc2626]">{errors.idNumber}</p>
               )}
@@ -369,7 +376,7 @@ function HomeContent() {
           </button>
 
           <p className="pb-4 text-center text-xs text-[#94a3b8]">
-            您的信息将被安全处理，仅存储脱敏版本
+            身份证号将完整保存用于核验，手机号仅保存脱敏版本
           </p>
         </form>
       </div>

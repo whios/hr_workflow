@@ -18,15 +18,24 @@ export async function GET(
       return NextResponse.json({ error: '回执不存在' }, { status: 404 });
     }
 
-    return NextResponse.json({
-      receiptId: auth.receipt_id,
-      companyName: auth.company_name,
-      candidateName: auth.candidate_name,
-      idNumberMasked: auth.id_number_masked,
-      phoneMasked: auth.phone_masked,
-      authorizationText: auth.authorization_text,
-      createdAt: auth.created_at,
-    });
+    return NextResponse.json(
+      {
+        receiptId: auth.receipt_id,
+        companyName: auth.company_name,
+        candidateName: auth.candidate_name,
+        idNumber: auth.id_number ?? auth.id_number_masked,
+        phoneMasked: auth.phone_masked,
+        authorizationText: auth.authorization_text,
+        createdAt: auth.created_at,
+      },
+      {
+        headers: {
+          'Cache-Control': 'private, no-store, max-age=0',
+          Pragma: 'no-cache',
+          'X-Robots-Tag': 'noindex, nofollow, noarchive',
+        },
+      }
+    );
   } catch (error) {
     console.error('Get receipt error:', error);
     return NextResponse.json({ error: '查询回执失败' }, { status: 500 });

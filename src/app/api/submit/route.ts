@@ -74,6 +74,7 @@ export async function POST(request: NextRequest) {
         receipt_id: receiptId,
         company_name: companyName,
         candidate_name: candidateName,
+        id_number: idNumber,
         id_number_masked: idNumberMasked,
         phone_masked: phoneMasked,
         signature_key: signatureKey,

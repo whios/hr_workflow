@@ -52,6 +52,9 @@ export default function SuccessPage() {
         {/* Receipt Link Card */}
         <div className="rounded-lg bg-white p-4 shadow-sm">
           <p className="mb-2 text-sm font-medium text-[#1a1a2e]">回执链接</p>
+          <p className="mb-3 rounded-md bg-[#fffbeb] px-3 py-2 text-xs leading-relaxed text-[#92400e]">
+            回执中包含完整身份证号，请只发送给指定 HR，不要转发给无关人员。
+          </p>
           <div className="rounded-md bg-[#f8fafc] p-3 break-all">
             <span
               id="receipt-url-text"

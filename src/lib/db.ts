@@ -5,6 +5,7 @@ export interface AuthorizationRecord {
   receipt_id: string;
   company_name: string;
   candidate_name: string;
+  id_number?: string;
   id_number_masked: string;
   phone_masked: string;
   signature_key: string;
@@ -16,6 +17,7 @@ export async function insertAuthorization(data: {
   receipt_id: string;
   company_name: string;
   candidate_name: string;
+  id_number: string;
   id_number_masked: string;
   phone_masked: string;
   signature_key: string;

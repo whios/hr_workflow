@@ -50,7 +50,7 @@ export async function GET(
       ['Receipt No / 回执编号', auth.receipt_id],
       ['Company / 公司全称', auth.company_name],
       ['Candidate / 授权人', auth.candidate_name],
-      ['ID Number / 身份证号', auth.id_number_masked],
+      ['ID Number / 身份证号', auth.id_number ?? auth.id_number_masked],
       ['Phone / 手机号', auth.phone_masked],
       ['Date / 签署日期', auth.created_at],
     ];
@@ -115,7 +115,9 @@ export async function GET(
       headers: {
         'Content-Type': 'application/pdf',
         'Content-Disposition': `attachment; filename="${filename}"`,
-        'Cache-Control': 'no-cache',
+        'Cache-Control': 'private, no-store, max-age=0',
+        Pragma: 'no-cache',
+        'X-Robots-Tag': 'noindex, nofollow, noarchive',
       },
     });
   } catch (error) {

@@ -24,7 +24,9 @@ export async function GET(
     return new NextResponse(new Uint8Array(buffer), {
       headers: {
         'Content-Type': 'image/png',
-        'Cache-Control': 'public, max-age=86400',
+        'Cache-Control': 'private, no-store, max-age=0',
+        Pragma: 'no-cache',
+        'X-Robots-Tag': 'noindex, nofollow, noarchive',
       },
     });
   } catch (error) {
