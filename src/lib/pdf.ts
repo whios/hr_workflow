@@ -11,8 +11,12 @@ export async function generateAuthorizationPdf(
 ): Promise<Buffer> {
   const doc = new jsPDF({ unit: 'mm', format: 'a4' });
   const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
   const margin = 20;
   const contentWidth = pageWidth - margin * 2;
+  const footerLineY = pageHeight - 20;
+  const footerTextY = pageHeight - 15;
+  const contentBottomY = footerLineY - 10;
   let y = 25;
 
   if (fs.existsSync(FONT_PATH)) {
@@ -22,6 +26,35 @@ export async function generateAuthorizationPdf(
     doc.addFont('wqy-microhei.ttf', 'WenQuanYi', 'normal');
     doc.setFont('WenQuanYi');
   }
+
+  const startNewPage = () => {
+    doc.addPage();
+    if (fs.existsSync(FONT_PATH)) {
+      doc.setFont('WenQuanYi');
+    }
+    y = margin;
+  };
+
+  const ensureSpace = (height: number) => {
+    if (y + height > contentBottomY) {
+      startNewPage();
+    }
+  };
+
+  const drawFooter = () => {
+    doc.setDrawColor(200);
+    doc.setLineWidth(0.3);
+    doc.line(margin, footerLineY, pageWidth - margin, footerLineY);
+
+    doc.setFontSize(8);
+    doc.setTextColor(150);
+    doc.text(
+      `Generated: ${new Date().toISOString()} | Receipt: ${auth.receipt_id}`,
+      pageWidth / 2,
+      footerTextY,
+      { align: 'center' }
+    );
+  };
 
   doc.setFontSize(18);
   doc.text('Background Check Authorization', pageWidth / 2, y, {
@@ -67,10 +100,15 @@ export async function generateAuthorizationPdf(
   doc.setFontSize(11);
   doc.setTextColor(0);
   const lines = doc.splitTextToSize(auth.authorization_text, contentWidth);
-  doc.text(lines, margin, y);
-  y += lines.length * lineHeight + 10;
+  for (const line of lines) {
+    ensureSpace(lineHeight);
+    doc.text(line, margin, y);
+    y += lineHeight;
+  }
+  y += 10;
 
   try {
+    ensureSpace(28);
     const sigBuffer = await readSignatureBuffer(auth.signature_key);
     const sigBase64 = sigBuffer.toString('base64');
     doc.setFontSize(9);
@@ -80,24 +118,11 @@ export async function generateAuthorizationPdf(
     doc.addImage(`data:image/png;base64,${sigBase64}`, 'PNG', margin, y, 50, 20);
     y += 25;
   } catch {
+    ensureSpace(25);
     doc.text('[Signature Image]', margin, y + 5);
     y += 25;
   }
-
-  y = Math.max(y + 10, 250);
-  doc.setDrawColor(200);
-  doc.setLineWidth(0.3);
-  doc.line(margin, y, pageWidth - margin, y);
-  y += 5;
-
-  doc.setFontSize(8);
-  doc.setTextColor(150);
-  doc.text(
-    `Generated: ${new Date().toISOString()} | Receipt: ${auth.receipt_id}`,
-    pageWidth / 2,
-    y,
-    { align: 'center' }
-  );
+  drawFooter();
 
   return Buffer.from(doc.output('arraybuffer'));
 }

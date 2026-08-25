@@ -1,5 +1,5 @@
 import crypto from 'crypto';
-import { get, list, put } from '@vercel/blob';
+import { del, get, list, put } from '@vercel/blob';
 import type { AuthorizationRecord } from '@/lib/db';
 import type {
   AdminAuditAction,
@@ -59,6 +59,29 @@ export async function listAuthorizationRecords(): Promise<AuthorizationRecord[]>
   return records.sort((left, right) =>
     right.created_at.localeCompare(left.created_at)
   );
+}
+
+export async function deleteAuthorizationRecords(
+  receiptIds: string[]
+): Promise<number> {
+  const requestedSet = new Set(receiptIds);
+  if (requestedSet.size === 0) return 0;
+
+  const records = (await listAuthorizationRecords()).filter((record) =>
+    requestedSet.has(record.receipt_id)
+  );
+
+  for (const record of records) {
+    await del(`receipts/${record.receipt_id}.json`);
+    await del(record.signature_key).catch((error) => {
+      console.error(
+        `Unable to delete signature blob ${record.signature_key}:`,
+        error
+      );
+    });
+  }
+
+  return records.length;
 }
 
 export function toAdminReceiptSummary(

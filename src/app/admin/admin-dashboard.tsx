@@ -8,6 +8,7 @@ import {
   FileArchive,
   LogOut,
   Search,
+  Trash2,
 } from 'lucide-react';
 import type {
   AdminAuditAction,
@@ -26,6 +27,7 @@ const ACTION_LABELS: Record<AdminAuditAction, string> = {
   logout: '退出后台',
   export_csv: '导出表格',
   export_pdfs: '批量下载 PDF',
+  delete_receipts: '批量删除回执',
 };
 
 function formatDate(value: string): string {
@@ -60,7 +62,7 @@ export default function AdminDashboard({
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
   const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [busyAction, setBusyAction] = useState<'csv' | 'pdfs' | ''>('');
+  const [busyAction, setBusyAction] = useState<'csv' | 'pdfs' | 'delete' | ''>('');
   const [message, setMessage] = useState('');
 
   const filteredRecords = useMemo(() => {
@@ -143,6 +145,45 @@ export default function AdminDashboard({
     }
   };
 
+  const deleteRecords = async () => {
+    const selectedRecords = records.filter((record) =>
+      selected.has(record.receiptId)
+    );
+    if (selectedRecords.length === 0) return;
+
+    const confirmed = window.confirm(
+      `确认永久删除这 ${selectedRecords.length} 条回执吗？删除后无法恢复。`
+    );
+    if (!confirmed) return;
+
+    setBusyAction('delete');
+    setMessage('');
+    try {
+      const response = await fetch('/api/admin/delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          receiptIds: selectedRecords.map((record) => record.receiptId),
+        }),
+      });
+      const data = (await response.json().catch(() => null)) as {
+        deletedCount?: number;
+        error?: string;
+      } | null;
+      if (!response.ok) {
+        setMessage(data?.error ?? '删除失败');
+        return;
+      }
+      setSelected(new Set());
+      setMessage(`已删除 ${data?.deletedCount ?? selectedRecords.length} 条回执`);
+      router.refresh();
+    } catch {
+      setMessage('网络错误，请稍后重试');
+    } finally {
+      setBusyAction('');
+    }
+  };
+
   const logout = async () => {
     await fetch('/api/admin/logout', { method: 'POST' }).catch(() => undefined);
     router.replace('/admin/login');
@@ -185,7 +226,7 @@ export default function AdminDashboard({
         </section>
 
         <section aria-label="回执筛选和导出" className="mb-5">
-          <div className="grid gap-3 lg:grid-cols-[minmax(240px,1fr)_160px_160px_auto_auto]">
+          <div className="grid gap-3 lg:grid-cols-[minmax(240px,1fr)_160px_160px_auto_auto_auto]">
             <label className="relative block">
               <Search
                 className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-[#94a3b8]"
@@ -230,6 +271,15 @@ export default function AdminDashboard({
             >
               <FileArchive className="h-4 w-4" aria-hidden="true" />
               {busyAction === 'pdfs' ? '打包中...' : '批量 PDF'}
+            </button>
+            <button
+              type="button"
+              onClick={deleteRecords}
+              disabled={selected.size === 0 || busyAction !== ''}
+              className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-[#dc2626] bg-white px-4 text-sm font-medium text-[#dc2626] disabled:opacity-50"
+            >
+              <Trash2 className="h-4 w-4" aria-hidden="true" />
+              {busyAction === 'delete' ? '删除中...' : '批量删除'}
             </button>
           </div>
           {message && (

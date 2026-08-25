@@ -8,7 +8,8 @@ export type AdminAuditAction =
   | 'login'
   | 'logout'
   | 'export_csv'
-  | 'export_pdfs';
+  | 'export_pdfs'
+  | 'delete_receipts';
 
 export interface AdminAuditEvent {
   id: string;
